@@ -15,7 +15,7 @@ no_index:
     - inc
     - t
 requires:
-  Carp: 0
+  Path::Class: 0
   YAML: 0
   perl: 5.8.0
-version: 0.001
+version: 0.002

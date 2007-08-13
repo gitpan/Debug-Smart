@@ -2,7 +2,7 @@ package Debug::Smart;
 
 use warnings;
 use strict;
-our $VERSION = '0.001';
+our $VERSION = '0.002';
 
 use 5.008;
 use Carp;
@@ -220,7 +220,7 @@ Debug::Smart - Debug messages for smart logging to the file
 
 =head1 VERSION
 
-version 0.001
+version 0.002
 
 =cut
 
@@ -264,7 +264,7 @@ And this module uses a source filter.  If you don't like that, don't use this.
 
 =head1 TRACE
 
-You can trace the variables if you use I<-tarce> option.
+You can trace the variables if you use I<-trace> option.
 This option specifies the variable's name that is type of B<SCALAR> or B<ARRAY_REF>.
 B<TRACE> function is automatically added by source code filter(B<Fillter::Util::Call>) and
 outputs the specified variable's value that each time appeared in the source code.

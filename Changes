@@ -1,5 +1,9 @@
 Revision history for Debug-Smart
 
-0.001   Date/time
+0.002   2007-08-13 Kazuhiro Shibuya
+        Fixed document typo
+        Fixed install dependency of Path::Class
+
+0.001   2007-08-05 Kazuhiro Shibuya
         First version, released on an unsuspecting world.
 
