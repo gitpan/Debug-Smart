@@ -1,5 +1,5 @@
 use Test::More 'no_plan';
-use Debug::Smart -trace => '$trace';
+use Debug::Smart -trace => ['$trace', '@trace'];
 use IO::File;
 
 my $foo = "foo";
@@ -20,6 +20,8 @@ $trace = 'tracing message';
 $trace = {
     hoge => 'huga',
 };
+@trace = ('foo', 'bar', 'buz');
+$trace = ['foo', 'bar', 'buz'];
 
 my $log = IO::File->new('t/main.debug_log', 'r') or die "can't open";
 

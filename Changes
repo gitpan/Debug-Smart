@@ -1,5 +1,10 @@
 Revision history for Debug-Smart
 
+0.003   2007-08-16 Kazuhiro Shibuya
+        The opened file handle range was made narrow.
+        And CLOSE mehtod is no longer available.
+        Fixed TRACE method passes array arguments.
+
 0.002   2007-08-13 Kazuhiro Shibuya
         Fixed document typo
         Fixed install dependency of Path::Class

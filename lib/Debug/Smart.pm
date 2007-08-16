@@ -2,7 +2,7 @@ package Debug::Smart;
 
 use warnings;
 use strict;
-our $VERSION = '0.002';
+our $VERSION = '0.003';
 
 use 5.008;
 use Carp;
@@ -10,18 +10,9 @@ use Path::Class;
 use IO::File;
 use base qw(Exporter);
 
-our @EXPORT = qw(LOG YAML DUMP CLOSE);
+our @EXPORT = qw(LOG YAML DUMP);
 our @EXPORT_OK = qw(TRACE);
-my $fh_hashref;
-my $arg_hashref;
-
-END {
-    _make_temp(_get_fh(), 'fh');
-    _make_temp(_get_arg(), 'arg');
-    $fh_hashref = undef;
-    $arg_hashref = undef;;
-    CLOSE();
-}
+my $arg_ref;
 
 sub import {
     my $package = shift;
@@ -39,13 +30,13 @@ sub import {
     while (@_) {
         my $key = shift;
         if ($key =~ /^[-]/) {
-            if ($key =~ /-path|-p/) {
+            if ($key =~ /-path/) {
                 $arg->{$key} = shift;
             }
-            elsif ($key =~ /-name|-n/) {
+            elsif ($key =~ /-name/) {
                 $arg->{$key} = shift;
             }
-            elsif ($key =~ /-timestamp|-ts/) {
+            elsif ($key =~ /-timestamp/) {
                 $arg->{$key} = $TRUE;
             }
             elsif ($key =~ /-append/) {
@@ -61,10 +52,10 @@ sub import {
             push @symbols, $key;
         }
     }
-    _open($caller_package, $arg);
-    $arg_hashref->{$caller_package} = $arg;
-    _make_temp(undef, 'fh');
-    _make_temp(undef, 'arg');
+
+    # file is delete if not append mode.
+    unlink "$arg->{-path}/$arg->{-name}" unless $arg->{-append};
+    $arg_ref->{$caller_package} = $arg;
     Exporter::export($package, $caller_package, @symbols);
 }
 
@@ -100,7 +91,7 @@ sub _tracefilter {
                 s{([^;]*$escape[^;]*;)}{$1TRACE $name => $target;}gm;
             }
             else {
-                croak 'you must use SCALAR or ARRAY REF : ' . ref $target;
+                croak 'you should use SCALAR or ARRAY REF : ' . ref $target;
             }
             $done = 1;
         }
@@ -108,41 +99,54 @@ sub _tracefilter {
 }
 
 sub _open {
-    my ($caller_package, $arg) = @_;
-    my $mode = $arg->{-append} ? 'a' : 'w';
-    my $fh = IO::File->new("$arg->{-path}/$arg->{-name}", $mode) or
+    my ($caller_package) = @_;
+    my $arg = _arg($caller_package);
+    my $fh = IO::File->new("$arg->{-path}/$arg->{-name}", 'a') or
         croak "IO::File can't open the file : "
         . $arg->{-path} . " name : " . $arg->{-name};
-
-    $fh_hashref->{$caller_package} = $fh;
+    return $fh;
 }
 
+sub _arg {
+    my $caller_package = shift;
+    return $arg_ref->{$caller_package};
+}
 
 sub LOG {
     my $value = shift;
-    my $arg = _temp_arg() || _get_arg();
-    _make_temp(undef, 'arg');
-    $value = '[' . localtime(time) . ']' . $value if $arg->{-timestamp};
-    my $fh = _temp_fh() || _get_fh() ;
-    _make_temp(undef, 'fh');
-    print $fh "$value\n" or croak "Can't print value.";
+    my $fh = _open(caller(0));
+    my $arg = _arg(caller(0));
+
+    _log($fh, $arg, $value);
     $fh->flush;
+    $fh->close;
     return $value;
 }
 
+sub _log {
+    my ($fh, $arg, $value) = @_;
+    $value = '[' . localtime(time) . ']' . $value if $arg->{-timestamp};
+    print $fh "$value\n" or croak "Can't print value.";
+}
+
 sub DUMP {
+    my $fh = _open(caller(0));
+    my $arg = _arg(caller(0));
+    _dump($fh, $arg, @_);
+    $fh->flush;
+    $fh->close;
+    return wantarray ? @_ : $_[0];
+}
+
+sub _dump {
+    my $fh = shift;
+    my $arg = shift;
     my $message = shift;
     eval "require Data::Dumper";
     croak "Data::Dumper is not installed" if $@;
 
-    my $fh = _temp_fh() || _get_fh();
-    _make_temp($fh, 'fh');
-    my $arg = _temp_arg() || _get_arg();
-    _make_temp($arg, 'arg');
-    LOG("[$message #DUMP]");
+    _log($fh, $arg, "[$message #DUMP]");
     print $fh Data::Dumper::Dumper(@_) or croak "Can't print value.";
-    $fh->flush;
-    return wantarray ? @_ : $_[0];
 }
 
 sub YAML {
@@ -150,67 +154,39 @@ sub YAML {
     eval "require YAML";
     croak "YAML is not installed." if $@;
 
-    my $fh = _temp_fh() || _get_fh();
-    _make_temp($fh, 'fh');
-    my $arg = _temp_arg() || _get_arg();
-    _make_temp($arg, 'arg');
-    LOG("[$message #YAML]");
+    my $fh = _open(caller(0));
+    my $arg = _arg(caller(0));
+    _log($fh, $arg, "[$message #YAML]");
     print $fh YAML::Dump(@_) or croak "Can't print value.";
     $fh->flush;
+    $fh->close;
     return wantarray ? @_ : $_[0];
 }
 
 sub TRACE {
-    my ($name, $value) = @_;
+    my $name = shift;
     my ($caller_package, $caller_name, $line) = caller(0);
     my $message = "TRACE name:$name line:$line";
-    my $type = ref $value;
-    _make_temp(_get_fh(), 'fh');
-    _make_temp(_get_arg(), 'arg');
-    if ($type eq 'SCALAR' || $type eq '') {
-        LOG("[$message] $value");
-    }
-    elsif ($type eq 'ARRAY' || $type eq 'HASH' || $type eq 'REF') {
-        DUMP($message, $value);
-    }
-    elsif ($type eq 'CODE' || $type eq 'GLOB') {
-        croak "can't trace CODE or GLOB type.";
+    my $fh = _open(caller());
+    my $arg = _arg(caller(0));
+    if (scalar(@_) == 1) {
+        my $value = shift @_;
+        my $type = ref $value;
+        if ($type eq 'SCALAR' || $type eq '') {
+            _log($fh, $arg, "[$message] $value");
+        }
+        elsif ($type eq 'ARRAY' || $type eq 'HASH' || $type eq 'REF') {
+            _dump($fh, $arg, $message, $value);
+        }
+        elsif ($type eq 'CODE' || $type eq 'GLOB') {
+            croak "can't trace CODE or GLOB type.";
+        }
     }
     else {
-        DUMP($message, $value);
+        _dump($fh, $arg, $message, @_);
     }
-}
-
-sub CLOSE {
-    my $fh = _temp_fh() || _get_fh();
-    _make_temp(undef, 'fh');
-    if ($fh) {
-        $fh->close;
-    }
-    my $arg = _temp_arg() || _get_arg();
-    _make_temp(undef, 'arg');
-    if ($arg && -z "$arg->{-path}/$arg->{-name}") {
-        unlink "$arg->{-path}/$arg->{-name}";
-    }
-}
-
-sub _get_fh {
-    my $caller_package = caller(1);
-    return $fh_hashref->{$caller_package};
-}
-
-sub _get_arg {
-    my $caller_package = caller(1);
-    return $arg_hashref->{$caller_package};
-}
-
-sub _make_temp {
-    my ($value, $type) = @_;
-    no strict 'refs';
-    no warnings;
-    *{"Debug::Smart::_temp_$type"} = sub {
-        return $value; 
-    };
+    $fh->flush;
+    $fh->close;
 }
 
 
@@ -220,7 +196,7 @@ Debug::Smart - Debug messages for smart logging to the file
 
 =head1 VERSION
 
-version 0.002
+version 0.003
 
 =cut
 
@@ -303,11 +279,6 @@ To write the variable structures to the file with YAML::Dump.
 This function traces valiables.
 (TRACE is not export if you don't use I<-trace> option)
 
-=item CLOSE
-
-This function closes the filehandle when you purposefully want to close it.
-Normally, this module closes the filehandle when the program ends.
-
 =back
 
 =head1 OPTIONS
@@ -342,7 +313,7 @@ Filter::Util::Call
 
 =head1 AUTHOR
 
-Kazuhiro Shibuya, C<< <k42uh1r0@gmail.com> >>
+Kazuhiro Shibuya, C<< <k42uh1r0 at gmail.com> >>
 
 =head1 BUGS
 

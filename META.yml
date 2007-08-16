@@ -1,6 +1,6 @@
 ---
 abstract: 'Debug messages for smart logging to the file '
-author: 'Kazuhiro Shibuya, C<< <k42uh1r0@gmail.com> >>'
+author: 'Kazuhiro Shibuya, C<< <k42uh1r0 at gmail.com> >>'
 build_requires:
   Test::More: 0
 distribution_type: module
@@ -18,4 +18,4 @@ requires:
   Path::Class: 0
   YAML: 0
   perl: 5.8.0
-version: 0.002
+version: 0.003
