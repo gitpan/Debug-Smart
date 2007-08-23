@@ -1,5 +1,9 @@
 Revision history for Debug-Smart
 
+0.004   2007- Kazuhiro Shibuya
+        Data::Dumper turn the sortkeys option on.
+        Check for write permission when open the log file.
+
 0.003   2007-08-16 Kazuhiro Shibuya
         The opened file handle range was made narrow.
         And CLOSE mehtod is no longer available.

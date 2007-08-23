@@ -2,7 +2,7 @@ package Debug::Smart;
 
 use warnings;
 use strict;
-our $VERSION = '0.003';
+our $VERSION = '0.004';
 
 use 5.008;
 use Carp;
@@ -101,6 +101,8 @@ sub _tracefilter {
 sub _open {
     my ($caller_package) = @_;
     my $arg = _arg($caller_package);
+    croak "[Debug::Smsart]permission denied. the output directory checks for write permission."
+        unless -w "$arg->{-path}";
     my $fh = IO::File->new("$arg->{-path}/$arg->{-name}", 'a') or
         croak "IO::File can't open the file : "
         . $arg->{-path} . " name : " . $arg->{-name};
@@ -144,6 +146,7 @@ sub _dump {
     my $message = shift;
     eval "require Data::Dumper";
     croak "Data::Dumper is not installed" if $@;
+    $Data::Dumper::Sortkeys = 1;
 
     _log($fh, $arg, "[$message #DUMP]");
     print $fh Data::Dumper::Dumper(@_) or croak "Can't print value.";
@@ -196,7 +199,7 @@ Debug::Smart - Debug messages for smart logging to the file
 
 =head1 VERSION
 
-version 0.003
+version 0.004
 
 =cut
 
