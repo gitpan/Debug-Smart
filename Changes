@@ -1,6 +1,9 @@
 Revision history for Debug-Smart
 
-0.004   2007- Kazuhiro Shibuya
+0.005   2007-12-15 Kazuhiro Shibuya
+        Debug::Smart is deprecated.
+
+0.004   2007-8-23 Kazuhiro Shibuya
         Data::Dumper turn the sortkeys option on.
         Check for write permission when open the log file.
 

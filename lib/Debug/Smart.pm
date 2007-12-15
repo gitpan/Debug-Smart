@@ -2,7 +2,7 @@ package Debug::Smart;
 
 use warnings;
 use strict;
-our $VERSION = '0.004';
+our $VERSION = '0.005';
 
 use 5.008;
 use Carp;
@@ -210,6 +210,14 @@ version 0.004
     LOG("write a message");
     DUMP("dump the data structures", $arg);
     YAML("dump the data structures back into yaml", $arg)
+
+=head1 DEPRECATED 
+
+Debug::Smart is deprecated.
+This module name changes Debug::Smart to Log::Smart.
+When I released this module naming it to Debug::Smart was wrong.
+Debug::Smart was unmatched this module functions.
+Thanks for nadim khemir from review.
 
 =head1 DESCRIPTION
 
